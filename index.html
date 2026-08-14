@@ -1,0 +1,730 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Torneo de Juegos de Mesa</title>
+    <style>
+        /* Variables de color (Modo Claro) */
+        :root { 
+            --primary: #2c3e50; --secondary: #3498db; --bg: #f5f6fa; --container-bg: white;
+            --input-bg: white; --border-color: #ccc; --card-hover: #f0f8ff; --podium-bg: #eee;
+            --place-bg-1: #fffdf5; --place-bg-2: #f8f9fa; --place-bg-3: #fdf5f0; --admin-box-bg: #f9f9f9;
+        }
+
+        /* Variables de color (Modo Oscuro) */
+        body.dark-mode {
+            --primary: #ecf0f1; --bg: #121212; --container-bg: #1e1e1e; --input-bg: #2c2c2c;
+            --border-color: #444; --card-hover: #2c3e50; --podium-bg: #2a2a2a;
+            --place-bg-1: #302811; --place-bg-2: #222222; --place-bg-3: #2e1e16; --admin-box-bg: #252525;
+        }
+
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: var(--bg); color: var(--primary); text-align: center; margin: 0; padding: 10px; transition: 0.3s; }
+        
+        /* Botón de Noche Flotante Abajo */
+        .theme-toggle-container { 
+            position: fixed; bottom: 20px; right: 20px; z-index: 1000; background: var(--container-bg); 
+            padding: 10px 15px; border-radius: 30px; box-shadow: 0 4px 10px rgba(0,0,0,0.3); border: 1px solid var(--border-color);
+        }
+        #theme-toggle { background: transparent; border: none; font-size: 24px; cursor: pointer; padding: 0; margin: 0; }
+        
+        .container { max-width: 900px; margin: 0 auto; background: var(--container-bg); padding: 20px; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.2); transition: 0.3s; }
+        .hidden { display: none !important; }
+        
+        input, select { padding: 10px; margin: 5px; border-radius: 5px; border: 1px solid var(--border-color); font-size: 16px; background: var(--input-bg); color: var(--primary); transition: 0.3s; }
+        button { padding: 10px; margin: 10px 0; border-radius: 5px; border: none; font-size: 16px; background: var(--secondary); color: white; cursor: pointer; transition: 0.3s; font-weight: bold;}
+        button:hover { background: #2980b9; }
+        
+        /* Encabezado Fijo para Tablets */
+        .sticky-header { position: sticky; top: 0; background: var(--container-bg); z-index: 10; padding-top: 10px; padding-bottom: 15px; border-bottom: 2px solid var(--border-color); margin-bottom: 15px; }
+
+        .game-card { display: inline-block; width: 42%; margin: 1%; cursor: pointer; border: 3px solid transparent; border-radius: 10px; padding: 8px; transition: 0.2s; background: var(--container-bg);}
+        .game-card:hover { transform: scale(1.03); border-color: var(--secondary); background: var(--card-hover);}
+        .game-card img { width: 100%; height: 40vh; max-height: 250px; min-height: 120px; object-fit: cover; border-radius: 8px; }
+        .game-card h3 { font-size: 16px; margin: 8px 0 0 0; white-space: normal; }
+        .single-card { width: 60%; margin: 0 auto; }
+        .match-container { display: flex; justify-content: center; align-items: center; flex-wrap: wrap; }
+        .vs { font-size: 24px; font-weight: bold; margin: 0 5px; color: #e74c3c; }
+        
+        /* Estilos del Podio Top 3 */
+        .podium { display: flex; justify-content: center; gap: 15px; margin-top: 20px; text-align: center; align-items: stretch; flex-wrap: wrap;}
+        .place-card { background: var(--container-bg); padding: 15px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); width: 28%; min-width: 120px; display: flex; flex-direction: column; align-items: center; justify-content: start; transition: 0.3s; }
+        .place-card img { width: 100%; height: 180px; object-fit: cover; border-radius: 8px; margin-bottom: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
+        .first-place { border: 3px solid #f1c40f; background: var(--place-bg-1); width: 32%; }
+        .second-place { border: 3px solid #bdc3c7; background: var(--place-bg-2); }
+        .third-place { border: 3px solid #d35400; background: var(--place-bg-3); }
+        
+        /* Estilos Menciones Honorificas (Top 5 y Top 10) */
+        .extended-podium { display: flex; justify-content: center; gap: 15px; margin-top: 15px; flex-wrap: wrap; }
+        .extended-card { background: var(--container-bg); padding: 10px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); width: 18%; min-width: 120px; display: flex; flex-direction: column; align-items: center; position: relative; transition: 0.3s; border: 1px solid var(--border-color); }
+        .extended-card:hover { transform: translateY(-3px); }
+        .extended-card img { width: 100%; height: 120px; object-fit: cover; border-radius: 5px; margin-bottom: 8px; }
+        .extended-card p { font-size: 14px; margin: 0; font-weight: bold; }
+        .rank-badge { position: absolute; top: -10px; left: -10px; background: var(--secondary); color: white; border-radius: 50%; width: 30px; height: 30px; display: flex; justify-content: center; align-items: center; font-weight: bold; font-size: 14px; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
+
+        .form-group { display: flex; flex-direction: column; align-items: center; gap: 10px; margin-bottom: 20px;}
+        .admin-section { margin-top: 30px; padding-top: 20px; border-top: 2px dashed var(--border-color); text-align: left; }
+        .admin-flex { display: flex; gap: 20px; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; }
+        .add-box, .edit-box { width: 48%; min-width: 250px; background: var(--admin-box-bg); padding: 15px; border-radius: 8px; flex-grow: 1; }
+        
+        .game-list { max-height: 400px; overflow-y: auto; padding-right: 10px; }
+        .game-list-item { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding: 8px 0;}
+        .game-info { display: flex; align-items: center; font-size: 14px; font-weight: bold; width: 70%;}
+        .game-info img { width: 50px; height: 50px; object-fit: cover; border-radius: 5px; margin-right: 15px;}
+        
+        .action-buttons { display: flex; gap: 5px; width: 30%; justify-content: flex-end;}
+        .edit-btn { background: #f39c12; font-size: 12px; padding: 5px 10px; margin: 0;}
+        .delete-btn { background: #e74c3c; font-size: 12px; padding: 5px 10px; margin: 0;}
+        .export-btn { background: #27ae60; width: 100%; margin-top: 15px; }
+        .export-btn:hover { background: #2ecc71; }
+        .reset-btn { background: #e67e22; width: 100%; margin-top: 10px; }
+        .reset-btn:hover { background: #d35400; }
+        
+        .pass-btn { margin-top: 15px; background: #27ae60; width: 100%;}
+        .counter-badge { display: inline-block; background: var(--secondary); color: white; padding: 5px 15px; border-radius: 15px; font-size: 14px; margin: 0; font-weight: bold;}
+        
+        .filters-container { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-bottom: 10px; width: 100%; }
+        .filters-container select { width: 45%; min-width: 200px; }
+
+        /* Estilos del Modal de Edición */
+        .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.6); display: flex; justify-content: center; align-items: center; z-index: 2000; }
+        .modal-content { background: var(--container-bg); padding: 25px; border-radius: 10px; width: 90%; max-width: 400px; box-shadow: 0 5px 15px rgba(0,0,0,0.3); text-align: left;}
+        .modal-content h3 { margin-top: 0; color: var(--primary); text-align: center; }
+        .modal-content label { font-size: 14px; font-weight: bold; margin-top: 10px; display: block; }
+        .modal-content input, .modal-content select { width: calc(100% - 10px); margin: 5px 0 15px 0; }
+        .modal-buttons { display: flex; justify-content: space-between; gap: 10px; margin-top: 10px; }
+        .save-btn { background: #27ae60; width: 100%; }
+        .cancel-btn { background: #95a5a6; width: 100%; }
+        .cancel-btn:hover { background: #7f8c8d; }
+    </style>
+</head>
+<body>
+
+<div class="theme-toggle-container">
+    <button id="theme-toggle" onclick="toggleTheme()" title="Cambiar Tema">🌙</button>
+</div>
+
+<!-- Modal de Edición -->
+<div id="edit-modal" class="modal-overlay hidden">
+    <div class="modal-content">
+        <h3>✏️ Editar Juego</h3>
+        
+        <label>Nombre del Juego:</label>
+        <input type="text" id="edit-name">
+        
+        <label>URL de la Imagen:</label>
+        <input type="text" id="edit-img">
+        
+        <label>Mecánica principal:</label>
+        <select id="edit-mechanic">
+            <option value="Colocación de trabajadores">Colocación de trabajadores</option>
+            <option value="Colocación de dados">Colocación de dados</option>
+            <option value="Colocación losetas">Colocación losetas</option>
+            <option value="Control de áreas">Control de áreas</option>
+            <option value="Deck-building">Deck-building</option>
+            <option value="Económicos">Económicos</option>
+            <option value="Lógicos">Lógicos</option>
+            <option value="Movimiento Oculto">Movimiento Oculto</option>
+            <option value="Roll and write">Roll and write</option>
+            <option value="Otra">Otra / Sin definir</option>
+        </select>
+        
+        <label>Nivel de dificultad:</label>
+        <select id="edit-level">
+            <option value="Fácil">Fácil</option>
+            <option value="Intermedio">Intermedio</option>
+            <option value="Complejo">Complejo</option>
+            <option value="Sin definir">Sin definir</option>
+        </select>
+        
+        <div class="modal-buttons">
+            <button class="cancel-btn" onclick="closeEditModal()">Cancelar</button>
+            <button class="save-btn" onclick="saveEditedGame()">💾 Guardar</button>
+        </div>
+    </div>
+</div>
+
+<div class="container" id="setup-screen">
+    <h1 style="font-size: 24px;">🏆 Torneo de Juegos de Mesa</h1>
+    
+    <div class="form-group">
+        <div style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
+            <select id="num-players" onchange="togglePlayerMode()" style="font-weight: bold; width: 100%; max-width: 150px;">
+                <option value="1">1 Jugador</option>
+                <option value="2" selected>2 Jugadores</option>
+            </select>
+            
+            <select id="top-count" style="font-weight: bold; width: 100%; max-width: 150px;">
+                <option value="3" selected>Top 3</option>
+                <option value="5">Top 5</option>
+                <option value="10">Top 10</option>
+            </select>
+
+            <input type="text" id="p1-name" placeholder="Nombre Jugador 1" value="Marielos" required style="width: 100%; max-width: 200px;">
+            <input type="text" id="p2-name" placeholder="Nombre Jugador 2" value="José Luis" style="width: 100%; max-width: 200px;">
+        </div>
+
+        <hr style="width: 80%; border: 1px solid var(--border-color); margin: 15px 0;">
+        <h3 style="margin: 0;">Filtros del Torneo (Opcional)</h3>
+        <div class="filters-container">
+            <select id="filter-mechanic">
+                <option value="Todos">🕹️ Todas las Mecánicas</option>
+                <option value="Colocación de trabajadores">Colocación de trabajadores</option>
+                <option value="Colocación de dados">Colocación de dados</option>
+                <option value="Colocación losetas">Colocación losetas</option>
+                <option value="Control de áreas">Control de áreas</option>
+                <option value="Deck-building">Deck-building</option>
+                <option value="Económicos">Económicos</option>
+                <option value="Lógicos">Lógicos</option>
+                <option value="Movimiento Oculto">Movimiento Oculto</option>
+                <option value="Roll and write">Roll and write</option>
+                <option value="Otra">Otra</option>
+            </select>
+            <select id="filter-level">
+                <option value="Todos">📊 Todos los Niveles</option>
+                <option value="Fácil">Fácil</option>
+                <option value="Intermedio">Intermedio</option>
+                <option value="Complejo">Complejo</option>
+                <option value="Sin definir">Sin definir</option>
+            </select>
+        </div>
+
+        <button onclick="startTournament()" style="font-size: 18px; padding: 15px 30px; margin-top: 15px;">▶ Iniciar Torneo</button>
+    </div>
+
+    <div class="admin-section">
+        <h2 style="text-align: center; font-size: 20px;">⚙️ Administración de Base de Datos</h2>
+        <div class="admin-flex">
+            
+            <div class="add-box">
+                <h3 style="margin-top: 0;">Añadir Nuevo Juego</h3>
+                <input type="text" id="new-game-name" placeholder="Nombre del juego" style="width: 90%;">
+                <input type="text" id="new-game-img" placeholder="URL de la imagen (opcional)" style="width: 90%;">
+                
+                <select id="new-game-mechanic" style="width: 95%;">
+                    <option value="Otra" selected>Mecánica: Otra / Sin definir</option>
+                    <option value="Colocación de trabajadores">Colocación de trabajadores</option>
+                    <option value="Colocación de dados">Colocación de dados</option>
+                    <option value="Colocación losetas">Colocación losetas</option>
+                    <option value="Control de áreas">Control de áreas</option>
+                    <option value="Deck-building">Deck-building</option>
+                    <option value="Económicos">Económicos</option>
+                    <option value="Lógicos">Lógicos</option>
+                    <option value="Movimiento Oculto">Movimiento Oculto</option>
+                    <option value="Roll and write">Roll and write</option>
+                </select>
+                
+                <select id="new-game-level" style="width: 95%;">
+                    <option value="Sin definir" selected>Nivel: Sin definir</option>
+                    <option value="Fácil">Fácil</option>
+                    <option value="Intermedio">Intermedio</option>
+                    <option value="Complejo">Complejo</option>
+                </select>
+
+                <button onclick="addGame()" style="width: 95%;">Agregar Juego</button>
+                <hr style="border: 1px solid var(--border-color); margin: 20px 0;">
+                
+                <h4 style="margin-bottom: 5px;">Hacer los cambios permanentes</h4>
+                <p style="font-size: 13px; margin-top: 0; opacity: 0.8;">Descarga el código y pégalo en tu archivo index.html</p>
+                <button class="export-btn" onclick="exportDatabase()">💾 Descargar Código</button>
+                
+                <hr style="border: 1px solid var(--border-color); margin: 20px 0;">
+                <h4 style="margin-bottom: 5px;">Solucionar problemas de imágenes</h4>
+                <p style="font-size: 13px; margin-top: 0; opacity: 0.8;">Si en este celular o tablet no se ven los cambios, presiona aquí.</p>
+                <button class="reset-btn" onclick="resetDatabase()">🔄 Forzar Actualización</button>
+
+            </div>
+
+            <div class="edit-box">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <h3 style="margin:0;">Gestionar Juegos</h3>
+                    <span id="game-count-msg" style="font-weight: bold; font-size: 14px;">Total: 0</span>
+                </div>
+                <hr style="border: 1px solid var(--border-color); margin: 10px 0;">
+                <div class="game-list" id="game-list">
+                    <!-- La lista de juegos se cargará aquí -->
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<div class="container hidden" id="match-screen">
+    <!-- ENCABEZADO FIJO (No desaparece al bajar) -->
+    <div class="sticky-header">
+        <h2 id="turn-indicator" style="font-size: 24px; margin: 0 0 10px 0;">Turno de: </h2>
+        <div style="display: flex; justify-content: center; align-items: center; gap: 10px; flex-wrap: wrap;">
+            <h4 id="stage-indicator" style="background: var(--primary); color: var(--container-bg); display: inline-block; padding: 5px 15px; border-radius: 15px; margin: 0;">Etapa: 1</h4>
+            <div class="counter-badge" id="match-counter">Enfrentamiento 1 de X</div>
+        </div>
+    </div>
+    
+    <div class="match-container" id="match-arena">
+        <!-- Los juegos aparecerán aquí -->
+    </div>
+</div>
+
+<div class="container hidden" id="results-screen">
+    <h1>🎉 Resultados Finales 🎉</h1>
+    <div id="p1-results"></div>
+    <div id="p2-results"></div>
+    <button onclick="location.reload()" style="margin-top: 40px; font-size: 18px;">Jugar un Nuevo Torneo</button>
+</div>
+
+<script>
+    function initTheme() {
+        if (localStorage.getItem('theme') === 'dark') {
+            document.body.classList.add('dark-mode');
+            document.getElementById('theme-toggle').innerText = '☀️';
+        }
+    }
+
+    function toggleTheme() {
+        const body = document.body;
+        body.classList.toggle('dark-mode');
+        const btn = document.getElementById('theme-toggle');
+        if (body.classList.contains('dark-mode')) {
+            localStorage.setItem('theme', 'dark');
+            btn.innerText = '☀️';
+        } else {
+            localStorage.setItem('theme', 'light');
+            btn.innerText = '🌙';
+        }
+    }
+
+    function togglePlayerMode() {
+        const numPlayers = document.getElementById('num-players').value;
+        const p2Input = document.getElementById('p2-name');
+        if (numPlayers === '1') {
+            p2Input.style.display = 'none';
+        } else {
+            p2Input.style.display = 'inline-block';
+        }
+    }
+
+    // ========== AQUÍ ESTÁ TU BASE DE DATOS EN LA RAÍZ DEL CÓDIGO ==========
+    const defaultGames = [
+        { id: 1, name: "7 Wonders Duel", img: "https://cf.geekdo-images.com/zdagMskTF7wJBPjX74XsRw__imagepage/img/HdJ4d4O1P89V4UIhZnL3zoYnjow=/fit-in/900x600/filters:no_upscale():strip_icc()/pic2576399.jpg", mechanic: "Deck-building", level: "Intermedio" },
+        { id: 2, name: "Akropolis", img: "https://cf.geekdo-images.com/OTb0hIJHE-U3eD0FmpBrzA__imagepage/img/A6rZs0njg2zl-yqkUYkhg7ELGpE=/fit-in/900x600/filters:no_upscale():strip_icc()/pic6705097.jpg", mechanic: "Colocación losetas", level: "Intermedio" },
+        { id: 3, name: "Alhambra", img: "https://cf.geekdo-images.com/OiqKsYDh7pqeRYKG__kMSw__imagepage/img/DgfcCRh3qcOFt2jQDfCQ99AaDNI=/fit-in/900x600/filters:no_upscale():strip_icc()/pic4893652.jpg", mechanic: "Colocación losetas", level: "Intermedio" },
+        { id: 4, name: "Altiplano", img: "https://cf.geekdo-images.com/hgUDu_oG0uhnOWX4WM2vXA__imagepage/img/dDNwKBxSKDViEa1EcHh1QiM8cM4=/fit-in/900x600/filters:no_upscale():strip_icc()/pic4070329.jpg", mechanic: "Colocación de trabajadores", level: "Complejo" },
+        { id: 5, name: "Anno 1800", img: "https://cf.geekdo-images.com/B21RQfIBnt2A_CYq8iZvrg__imagepage/img/T6DLQAYYvdwGd-PgsglMs8-Z9nM=/fit-in/900x600/filters:no_upscale():strip_icc()/pic6220821.jpg", mechanic: "Colocación de trabajadores", level: "Complejo" },
+        { id: 6, name: "Azul: Vitrales de Sintra", img: "https://cf.geekdo-images.com/RrYR1xB8H7D1B5GwNV8jgQ__imagepage/img/jQCcH5G2nLEI-pQnJw2_1X3PE24=/fit-in/900x600/filters:no_upscale():strip_icc()/pic4212417.jpg", mechanic: "Colocación losetas", level: "Intermedio" },
+        { id: 7, name: "Bitoku", img: "https://cf.geekdo-images.com/sMP4YfVfwv6vvh_y7EcXzA__imagepage/img/WvpJxV4zbrQC4VgM2gF-LlATsto=/fit-in/900x600/filters:no_upscale():strip_icc()/pic6182978.jpg", mechanic: "Colocación de dados", level: "Complejo" },
+        { id: 8, name: "Blokus", img: "https://cf.geekdo-images.com/96YA5wUJDxtPkmPxemr5Qg__imagepage/img/prHITmtjGOroRq5ow1E8-h5Yy-o=/fit-in/900x600/filters:no_upscale():strip_icc()/pic2197702.jpg", mechanic: "Colocación losetas", level: "Fácil" },
+        { id: 9, name: "Brass: Birmingham", img: "https://cf.geekdo-images.com/x3zxjr-Vw5iU4yDPg70Jgw__imagepage/img/-17KkOmxbTu2slJTabGrkO8ZW8s=/fit-in/900x600/filters:no_upscale():strip_icc()/pic3490053.jpg", mechanic: "Económicos", level: "Complejo" },
+        { id: 10, name: "Cacao", img: "https://cf.geekdo-images.com/9z1EySATDnoeIyeD_HWRLw__imagepage/img/65yyOn8xCK_f_I6UDVUO1xcQaos=/fit-in/900x600/filters:no_upscale():strip_icc()/pic2835316.jpg", mechanic: "Colocación losetas", level: "Intermedio" },
+        { id: 11, name: "Carcassonne: 20th Anniversary Edition", img: "https://cf.geekdo-images.com/zicyqPiHZ-0W5hRcI-In0A__imagepage/img/n0QWwxczFiGAY3yllFyssXHEkRg=/fit-in/900x600/filters:no_upscale():strip_icc()/pic7609613.jpg", mechanic: "Colocación losetas", level: "Intermedio" },
+        { id: 12, name: "Carpe Diem", img: "https://cf.geekdo-images.com/YnpeRotNMcMiNFEqZZR4CA__imagepage/img/JEsrqniEq3_7R72ZxBYW0Abjk5o=/fit-in/900x600/filters:no_upscale():strip_icc()/pic4342101.jpg", mechanic: "Colocación losetas", level: "Intermedio" },
+        { id: 13, name: "Carson City", img: "https://cf.geekdo-images.com/DxNZPNkfjS-exbFa_ASi0Q__imagepage/img/kwB6AFphwrTZt6BIMAUlM0kydto=/fit-in/900x600/filters:no_upscale():strip_icc()/pic577030.jpg", mechanic: "Colocación de trabajadores", level: "Intermedio" },
+        { id: 14, name: "Cascadia", img: "https://cf.geekdo-images.com/MjeJZfulbsM1DSV3DrGJYA__imagepage/img/0ksox22FKLq-Z-rsbBlF2IDG9x0=/fit-in/900x600/filters:no_upscale():strip_icc()/pic5100691.jpg", mechanic: "Colocación losetas", level: "Intermedio" },
+        { id: 15, name: "CATAN", img: "https://cf.geekdo-images.com/0XODRpReiZBFUffEcqT5-Q__imagepage/img/enC7UTvCAnb6j1Uazvh0OBQjvxw=/fit-in/900x600/filters:no_upscale():strip_icc()/pic9156909.png", mechanic: "Colocación de trabajadores", level: "Intermedio" },
+        { id: 16, name: "Catan: El juego de Cartas", img: "https://cf.geekdo-images.com/ZzBMyBm0gAAiER1LAXIYhA__imagepage/img/mGVGvb-WaKOooLQFDkkp0x2PMJw=/fit-in/900x600/filters:no_upscale():strip_icc()/pic9656891.jpg", mechanic: "Deck-building", level: "Fácil" },
+        { id: 17, name: "Century: Spice Road", img: "https://cf.geekdo-images.com/0_KEDk4lCvryf1Ju3YQJxA__imagepage/img/4pU8XNwimU2Dlx097R2Fd7PQxxI=/fit-in/900x600/filters:no_upscale():strip_icc()/pic3339551.jpg", mechanic: "Deck-building", level: "Intermedio" },
+        { id: 18, name: "Coimbra", img: "https://cf.geekdo-images.com/JJFHx0RiUBYdy9bHAgVSuA__imagepage/img/onGh9Eg_PZyriwMfuoBxjj339DU=/fit-in/900x600/filters:no_upscale():strip_icc()/pic3956079.jpg", mechanic: "Colocación de dados", level: "Intermedio" },
+        { id: 19, name: "Concordia", img: "https://cf.geekdo-images.com/CzwSm8i7tkLz6cBnrILZBg__imagepage/img/wLKrQnpz-Udm23hoDBRjyKgHEvo=/fit-in/900x600/filters:no_upscale():strip_icc()/pic3453267.jpg", mechanic: "Deck-building", level: "Intermedio" },
+        { id: 20, name: "Daitoshi", img: "https://cf.geekdo-images.com/RCQf2kr9tPW3RrrZj-9lvA__imagepage/img/LPZqFPCeOSSfk_GiQNZzJrMrBDQ=/fit-in/900x600/filters:no_upscale():strip_icc()/pic7774194.jpg", mechanic: "Colocación de trabajadores", level: "Complejo" },
+        { id: 21, name: "Deep Sea Adventure Boost", img: "https://cf.geekdo-images.com/rHDvwG45RCSBnVYM65mVIA__imagepage/img/rgv88ix2FS1Ea8Jv2TUY9Fe-0yU=/fit-in/900x600/filters:no_upscale():strip_icc()/pic8393449.png", mechanic: "Colocación de trabajadores", level: "Fácil" },
+        { id: 22, name: "Dice Stars", img: "https://cf.geekdo-images.com/ZwnoOP5S4SFGBpg1FIcrTw__imagepage/img/XsNvBQsYZrTpVzlmvXeRNwg15Cc=/fit-in/900x600/filters:no_upscale():strip_icc()/pic2880939.jpg", mechanic: "Roll and write", level: "Fácil" },
+        { id: 23, name: "Dutch Blitz: Blue Expansion Pack", img: "https://cf.geekdo-images.com/I6ZsKBCmC5F2wuz5dRma_g__imagepage/img/sJJPooN43I3VzepLcqVXZs4ROd8=/fit-in/900x600/filters:no_upscale():strip_icc()/pic2538935.jpg", mechanic: "Deck-building", level: "Fácil" },
+        { id: 24, name: "El Muro de Adriano", img: "https://cf.geekdo-images.com/4XzRDw3VrgNpNfZlzZl66w__imagepage/img/CRQKXYrYvy_p8DI41monzacgX3I=/fit-in/900x600/filters:no_upscale():strip_icc()/pic5608818.png", mechanic: "Roll and write", level: "Complejo" },
+        { id: 25, name: "El Señor de los Anillos", img: "https://cf.geekdo-images.com/oWttjfs235Zh7jLGWO7_Hg__imagepage/img/AL4ZNhCJl28N54Xw-LwZ4dPny58=/fit-in/900x600/filters:no_upscale():strip_icc()/pic479124.jpg", mechanic: "Deck-building", level: "Complejo" },
+        { id: 26, name: "El Susurro de las Hojas", img: "https://cf.geekdo-images.com/Dc0ZrRsdPXvji7SX2xkH8g__imagepage/img/eaccPMekbWjxlRsifzGVc3lnmmk=/fit-in/900x600/filters:no_upscale():strip_icc()/pic6664078.jpg", mechanic: "Roll and write", level: "Fácil" },
+        { id: 27, name: "En el Año del Dragón", img: "https://cf.geekdo-images.com/4X3HUNl0WsJnTcJYi7bu9Q__imagepage/img/qcNBUysB2d2xof5TfWhiLIXBg5M=/fit-in/900x600/filters:no_upscale():strip_icc()/pic285822.jpg", mechanic: "Colocación de trabajadores", level: "Intermedio" },
+        { id: 28, name: "Everdell: Edición esencial", img: "https://cf.geekdo-images.com/fjE7V5LNq31yVEW_yuqI-Q__imagepage/img/ijYTk6KGtxLRdIvLsGar13ZHs4c=/fit-in/900x600/filters:no_upscale():strip_icc()/pic3918905.png", mechanic: "Colocación de trabajadores", level: "Intermedio" },
+        { id: 29, name: "Fireball Island: Race to Adventure", img: "https://cf.geekdo-images.com/_EGJ_QBZzM6dQC67kORkQw__imagepage/img/uv468aVR9MnYwEk8VtMoMD106_E=/fit-in/900x600/filters:no_upscale():strip_icc()/pic6386589.png", mechanic: "Colocación de trabajadores", level: "Fácil" },
+        { id: 30, name: "Five Tribes: The Djinns of Naqala", img: "https://cf.geekdo-images.com/dmo-WD6HZHVUPrbVHunaTw__imagepage/img/6Zrd6v5Z7gukQ-18akZ2hesGr_c=/fit-in/900x600/filters:no_upscale():strip_icc()/pic2055255.jpg", mechanic: "Colocación losetas", level: "Intermedio" },
+        { id: 31, name: "Fleet: The Dice Game", img: "https://cf.geekdo-images.com/XbfUcIO4lCp449zLmZ_4_g__imagepage/img/WK2Xzu0JkngWXzA9vHmk09VJJ40=/fit-in/900x600/filters:no_upscale():strip_icc()/pic4460262.jpg", mechanic: "Roll and write", level: "Intermedio" },
+        { id: 32, name: "Flip 7", img: "https://cf.geekdo-images.com/YrQxEB9Ef0kQorRApzG5vQ__imagepage/img/e0-XDpTH3XBwkPFE-CK7f4EqRvY=/fit-in/900x600/filters:no_upscale():strip_icc()/pic8780246.jpg", mechanic: "Deck-building", level: "Fácil" },
+        { id: 33, name: "Godspeed", img: "https://cf.geekdo-images.com/c6PbgOFbLGvP_8Kg12dusg__imagepage/img/zYdRxQ_ULrhB_CSEcQnuNrDQ7YQ=/fit-in/900x600/filters:no_upscale():strip_icc()/pic4883601.png", mechanic: "Colocación de trabajadores", level: "Complejo" },
+        { id: 34, name: "Grand Austria Hotel", img: "https://cf.geekdo-images.com/PJRaImV8iXGAq2L-6rrn-w__imagepage/img/bKk_RPFp3g6EddW0K4_vVXsH_u8=/fit-in/900x600/filters:no_upscale():strip_icc()/pic2649931.jpg", mechanic: "Colocación de dados", level: "Complejo" },
+        { id: 35, name: "GROVE: un juego en solitario de 9 cartas", img: "https://cf.geekdo-images.com/9UMK8dvUyDuUYwaMh59Hvw__imagepage/img/-mloewX-44BZ5b4vx_YKrad5d6E=/fit-in/900x600/filters:no_upscale():strip_icc()/pic5945719.png", mechanic: "Colocación de dados", level: "Intermedio" },
+        { id: 36, name: "Gùgōng", img: "https://cf.geekdo-images.com/HJ263_vhLJ58QUWPvMVbEg__imagepage/img/SVHgv_Y-TKjCwt8_VrxZaSw4zOw=/fit-in/900x600/filters:no_upscale():strip_icc()/pic4143114.jpg", mechanic: "Deck-building", level: "Intermedio" },
+        { id: 37, name: "Hanamikoji", img: "https://cf.geekdo-images.com/uiVZ7QVfRFQx3EBG8eDU8w__imagepage/img/ZMbvoQ0VgH4YCnt5ycPso6hedTo=/fit-in/900x600/filters:no_upscale():strip_icc()/pic6339446.png", mechanic: "Deck-building", level: "Intermedio" },
+        { id: 38, name: "Imhotep", img: "https://cf.geekdo-images.com/HkAt5n4R8XM0vNozl7fftA__imagepage/img/ncFlhnDgg7IWbqkHbsiCdnIgJLM=/fit-in/900x600/filters:no_upscale():strip_icc()/pic3029488.jpg", mechanic: "Colocación de trabajadores", level: "Intermedio" },
+        { id: 39, name: "It's a Wonderful World", img: "https://cf.geekdo-images.com/od4vDTdXGPSVc-kjLqM11w__imagepage/img/j25VMfEYxUIIp7tk_F8QCv96Z0g=/fit-in/900x600/filters:no_upscale():strip_icc()/pic4651175.jpg", mechanic: "Deck-building", level: "Intermedio" },
+        { id: 40, name: "Jaipur", img: "https://cf.geekdo-images.com/_LTujSe_o16nvjDC-J0seA__imagepage/img/X7qZxqheM7_ADLuPhC11b_9IhYw=/fit-in/900x600/filters:no_upscale():strip_icc()/pic5100947.jpg", mechanic: "Deck-building", level: "Intermedio" },
+        { id: 41, name: "Joan of Arc: Orléans Draw & Write", img: "https://cf.geekdo-images.com/eflfeDSSSBlbPe0JFKJ0Pg__imagepage/img/X6lXxkNQJYw9ynCCnB7e8VQGKbw=/fit-in/900x600/filters:no_upscale():strip_icc()/pic6910522.jpg", mechanic: "Roll and write", level: "Intermedio" },
+        { id: 42, name: "Juego de Tronos: La Mano del Rey", img: "https://cf.geekdo-images.com/eKmDyXnsFmnzF5cuv32hjA__imagepage/img/2gSJDef7naGuhSqn476phVlhiuQ=/fit-in/900x600/filters:no_upscale():strip_icc()/pic3122395.jpg", mechanic: "Colocación losetas", level: "Fácil" },
+        { id: 43, name: "Karuba", img: "https://cf.geekdo-images.com/hhV3JiYZUHEi_glLhC0v8w__imagepage/img/2VFdnIlLpNfJkJpMKVkA1F18oak=/fit-in/900x600/filters:no_upscale():strip_icc()/pic2727088.jpg", mechanic: "Colocación losetas", level: "Intermedio" },
+        { id: 44, name: "Kelp: Pulpo vs Tiburón", img: "https://cf.geekdo-images.com/iMtHHxutEtga5DiZDIbgJg__imagepage/img/cOu17F2BnQ9aamr7o59cDAZ9gxU=/fit-in/900x600/filters:no_upscale():strip_icc()/pic7493386.jpg", mechanic: "Movimiento Oculto", level: "Complejo" },
+        { id: 45, name: "Kingdom Builder", img: "https://cf.geekdo-images.com/kJOP_BICVX-88sKqFRh9PQ__imagepage/img/7I3HjxBsI3D-L6jp6HG9ll9DIy4=/fit-in/900x600/filters:no_upscale():strip_icc()/pic1152359.jpg", mechanic: "Colocación de trabajadores", level: "Intermedio" },
+        { id: 46, name: "La Tripulación: En busca del noveno planeta", img: "https://cf.geekdo-images.com/98LnQShydr11OBKS46xY-Q__imagepage/img/zMKI-BwvaWQiVVwg91Pb5P56uN8=/fit-in/900x600/filters:no_upscale():strip_icc()/pic5687013.jpg", mechanic: "Deck-building", level: "Intermedio" },
+        { id: 47, name: "Lapsus", img: "https://cf.geekdo-images.com/_AJbB96dbQwY4tsMJzi8MA__imagepage/img/p7bGf5r4tVzTQUg6zg-KheekkRU=/fit-in/900x600/filters:no_upscale():strip_icc()/pic5676868.jpg", mechanic: "Deck-building", level: "Fácil" },
+        { id: 48, name: "Lorenzo il Magnifico: Big Box", img: "https://cf.geekdo-images.com/mEP17E6-KPX7oXgigks-Ww__imagepage/img/rtXJQZFzy1-4woKwTF01AfG0sKU=/fit-in/900x600/filters:no_upscale():strip_icc()/pic6167555.jpg", mechanic: "Colocación de dados", level: "Complejo" },
+        { id: 49, name: "Lost Cities", img: "https://cf.geekdo-images.com/AL5D-dXabY-Lk3PqIFk_0g__imagepage/img/co0J-4Ll2G4zRgAsA6BeneHb8Oc=/fit-in/900x600/filters:no_upscale():strip_icc()/pic4597095.jpg", mechanic: "Deck-building", level: "Fácil" },
+        { id: 50, name: "Lost Ruins of Arnak", img: "https://cf.geekdo-images.com/mYvF0Zt06k_h5mO4OexN7w__imagepage/img/18bL3T1Hw2mE34-Xz_nMY4OQ4nU=/fit-in/900x600/filters:no_upscale():strip_icc()/pic5644177.jpg", mechanic: "Otra", level: "Sin definir" },
+        { id: 51, name: "LUNA Capital", img: "https://cf.geekdo-images.com/tsoRGi5tKQ5W2LeXDhb-cQ__imagepage/img/zSb58ZxempYPtxx3Q3eB8fcqBQ4=/fit-in/900x600/filters:no_upscale():strip_icc()/pic5977208.jpg", mechanic: "Colocación losetas", level: "Intermedio" },
+        { id: 52, name: "Majesty: La Corona del Reino ", img: "https://cf.geekdo-images.com/BsNE-w6bttGZ-JPLcY95mA__imagepage/img/Z22GrVy_yo_sCgqDWGRB17cP_MU=/fit-in/900x600/filters:no_upscale():strip_icc()/pic3742410.jpg", mechanic: "Deck-building", level: "Intermedio" },
+        { id: 53, name: "Maracaibo", img: "https://cf.geekdo-images.com/rMNa0k05zMdKgSEp26Q3Tw__imagepage/img/tU367UEHoA5m8Q1uagXkU9g_mk4=/fit-in/900x600/filters:no_upscale():strip_icc()/pic4917407.jpg", mechanic: "Colocación de trabajadores", level: "Complejo" },
+        { id: 54, name: "Match Madness", img: "https://cf.geekdo-images.com/T751dLk9OoU18py2BQ21fA__imagepage/img/d9m6QK45VcH1R7CkLsokOIIwiM0=/fit-in/900x600/filters:no_upscale():strip_icc()/pic8896525.jpg", mechanic: "Lógicos", level: "Intermedio" },
+        { id: 55, name: "Messina 1347", img: "https://cf.geekdo-images.com/Pw9TGohEb7PITFJnuq48bQ__imagepage/img/s8iXTTL-SAMwyy8Ovw6Q8XzkonY=/fit-in/900x600/filters:no_upscale():strip_icc()/pic6397342.jpg", mechanic: "Colocación de trabajadores", level: "Complejo" },
+        { id: 56, name: "Micro Dojo", img: "https://cf.geekdo-images.com/WEPlS84EYpImR4NdrZvMww__imagepage/img/G7jrSTEkUgA4v2OMWU0p7A81GTg=/fit-in/900x600/filters:no_upscale():strip_icc()/pic7606849.png", mechanic: "Colocación de trabajadores", level: "Intermedio" },
+        { id: 57, name: "Mondo", img: "https://cf.geekdo-images.com/DZiHZK3RAcM_kgfwJ8qPgg__imagepage/img/Sq5gK3XL048boK8EOqslvxM3bFc=/fit-in/900x600/filters:no_upscale():strip_icc()/pic1458279.jpg", mechanic: "Colocación losetas", level: "Intermedio" },
+        { id: 58, name: "Obsession", img: "https://cf.geekdo-images.com/sy89BiuZXfbSnG7Cag9tBQ__imagepage/img/7ZYt4HM9o-Tsh8r96um0lbQNpZw=/fit-in/900x600/filters:no_upscale():strip_icc()/pic5902073.png", mechanic: "Deck-building", level: "Complejo" },
+        { id: 59, name: "Onitama", img: "https://cf.geekdo-images.com/GJKuOCy5HGAYgVH_Rei5mA__imagepage/img/wor2OPvOXGBwqkGZCxcMU38SwD0=/fit-in/900x600/filters:no_upscale():strip_icc()/pic7070194.jpg", mechanic: "Otra", level: "Sin definir" },
+        { id: 60, name: "Orléans", img: "https://cf.geekdo-images.com/nagl1li6kYt9elV9jbfVQw__imagepage/img/bmtHK2zXBEUD-Wme7CvkPbL0goA=/fit-in/900x600/filters:no_upscale():strip_icc()/pic6228507.jpg", mechanic: "Colocación de trabajadores", level: "Intermedio" },
+        { id: 61, name: "Orléans Stories", img: "https://cf.geekdo-images.com/t_pmmQxuZwVDQ4gHNqUvSA__imagepage/img/wU-OhKsEVrP4ZkGHav0NIGdULCI=/fit-in/900x600/filters:no_upscale():strip_icc()/pic4911042.jpg", mechanic: "Colocación de trabajadores", level: "Complejo" },
+        { id: 62, name: "Paleo", img: "https://cf.geekdo-images.com/85t1wkwgvh3d2mmjsRcDrw__imagepage/img/c8OMb2vjHqVu0oiPjpuQIaTDiKk=/fit-in/900x600/filters:no_upscale():strip_icc()/pic6039256.jpg", mechanic: "Deck-building", level: "Complejo" },
+        { id: 63, name: "Paris: La Cité de la Lumière", img: "https://cf.geekdo-images.com/6mIsd0NbfluAAZxwS-3P8Q__imagepage/img/NjDT5_d14IJJvug3jHsgwK_rtMU=/fit-in/900x600/filters:no_upscale():strip_icc()/pic4664437.jpg", mechanic: "Colocación losetas", level: "Intermedio" },
+        { id: 64, name: "Patchwork", img: "https://cf.geekdo-images.com/mJVZljmDIeOyaQc8YC4F6A__imagepage/img/p7HJ4GefYTOlR-VEB7E-nstzYN8=/fit-in/900x600/filters:no_upscale():strip_icc()/pic3052417.png", mechanic: "Colocación losetas", level: "Intermedio" },
+        { id: 65, name: "Pequeñas Grandes Galaxias: Espacio Profundo", img: "https://cf.geekdo-images.com/a5DVvZ_oLfEwCpuJ1nT2cA__imagepage/img/SwxUAgDgVEmfyroMj3y_P_5f5bQ=/fit-in/900x600/filters:no_upscale():strip_icc()/pic3026618.jpg", mechanic: "Colocación de trabajadores", level: "Intermedio" },
+        { id: 66, name: "Pequeños Grandes Dinosaurios", img: "https://cf.geekdo-images.com/iHH85cDgyfTdoM4BQddhKw__imagepage/img/MiRjQYx1l2O3dMfhHdOjGuF-Dwk=/fit-in/900x600/filters:no_upscale():strip_icc()/pic4995784.jpg", mechanic: "Colocación de trabajadores", level: "Intermedio" },
+        { id: 67, name: "Pompeji", img: "https://cf.geekdo-images.com/rpDW8ZSKxxoeYrGBAYd1sQ__imagepage/img/ehoupGW7L3VpPiWWvbigIrgJCVs=/fit-in/900x600/filters:no_upscale():strip_icc()/pic2710411.jpg", mechanic: "Colocación losetas", level: "Intermedio" },
+        { id: 68, name: "Qwirkle", img: "https://cf.geekdo-images.com/k7zHj8j_a6uUAtXUt5Fvuw__imagepage/img/R2T46yY67v-mKUnHdigXyS0tnmw=/fit-in/900x600/filters:no_upscale():strip_icc()/pic309353.jpg", mechanic: "Colocación losetas", level: "Fácil" },
+        { id: 69, name: "Qwixx", img: "https://cf.geekdo-images.com/aOt-bT9nDzZdWl0dUqLy4w__itemrep/img/z9C2pWTcupjSYechU-aT9Yd9t24=/fit-in/246x300/filters:strip_icc()/pic1950487.jpg", mechanic: "Roll and write", level: "Fácil" },
+        { id: 70, name: "Roll to the Top!", img: "https://cf.geekdo-images.com/C_DK-SKhQDGZ0L7KHQdzLg__imagepage/img/zlQKF3lAZVEBHSUboyeMVi-XiUY=/fit-in/900x600/filters:no_upscale():strip_icc()/pic5619972.jpg", mechanic: "Roll and write", level: "Intermedio" },
+        { id: 71, name: "Saboteur", img: "https://cf.geekdo-images.com/oeN-MHAJKsC2KCI3avKj9w__imagepage/img/qY8risTYRCwFj4toaIGalg_YM8E=/fit-in/900x600/filters:no_upscale():strip_icc()/pic8679622.jpg", mechanic: "Deck-building", level: "Fácil" },
+        { id: 72, name: "San Juan", img: "https://cf.geekdo-images.com/kiD03bslLpN_0Qe1LJ8OGg__imagepage/img/Pf4rZpXwKHUm8_TqPzGsuDunEgs=/fit-in/900x600/filters:no_upscale():strip_icc()/pic174174.jpg", mechanic: "Deck-building", level: "Intermedio" },
+        { id: 73, name: "Savernake Forest", img: "https://cf.geekdo-images.com/L9czUzdXB6PFTkY7ibB8Ag__imagepage/img/ZI7qUOJRbqmlYrKPvQKbm1hs6p8=/fit-in/900x600/filters:no_upscale():strip_icc()/pic7141470.jpg", mechanic: "Colocación losetas", level: "Intermedio" },
+        { id: 74, name: "Sea Salt & Paper", img: "https://cf.geekdo-images.com/CIh_rXKoRw9z8K0PJxT8nQ__imagepage/img/c1ZBBdIh3xOH6Iw_obvX761h76s=/fit-in/900x600/filters:no_upscale():strip_icc()/pic6973911.jpg", mechanic: "Deck-building", level: "Fácil" },
+        { id: 75, name: "Shiki", img: "https://cf.geekdo-images.com/_giXif73raxzOK5BGyX76A__imagepage/img/CaZkvbEz6KRMsF5smqzrfs_TSG8=/fit-in/900x600/filters:no_upscale():strip_icc()/pic6051518.jpg", mechanic: "Deck-building", level: "Fácil" },
+        { id: 76, name: "shukos", img: "https://placehold.co/400x400?text=shukos", mechanic: "Colocación losetas", level: "Intermedio" },
+        { id: 77, name: "Splendor", img: "https://cf.geekdo-images.com/vNFe4JkhKAERzi4T0Ntwpw__imagepage/img/JXnPzdgTeDkRrxESA86gnCw4Zws=/fit-in/900x600/filters:no_upscale():strip_icc()/pic8234167.png", mechanic: "Deck-building", level: "Intermedio" },
+        { id: 78, name: "Splendor Duel", img: "https://cf.geekdo-images.com/V1PyFDPNFY4bJFgreLPxmQ__imagepage/img/GnAJH3QrhGYdNvE_s5ZL5Lip3W8=/fit-in/900x600/filters:no_upscale():strip_icc()/pic6929347.jpg", mechanic: "Deck-building", level: "Intermedio" },
+        { id: 79, name: "Stone Age", img: "https://cf.geekdo-images.com/elmZegVZ6gp4_5izUgxGQQ__imagepage/img/rC8YvN1x0vj-3ot8WK9YDzDxORU=/fit-in/900x600/filters:no_upscale():strip_icc()/pic1632539.jpg", mechanic: "Colocación de trabajadores", level: "Intermedio" },
+        { id: 80, name: "Stone Age: 10 Aniversario", img: "https://cf.geekdo-images.com/DYD5pILusNffN5X2gQrpiQ__imagepage/img/3dVRQwsFRolCUWboc2uhea8m7QY=/fit-in/900x600/filters:no_upscale():strip_icc()/pic4389753.png", mechanic: "Colocación de trabajadores", level: "Intermedio" },
+        { id: 81, name: "Terraforming Mars", img: "https://cf.geekdo-images.com/wg9oOLcsKvDesSUdZQ_quw__imagepage/img/h_Z8KkG8XoG0H7P10_d9U1y5UQQ=/fit-in/900x600/filters:no_upscale():strip_icc()/pic3536616.jpg", mechanic: "Otra", level: "Sin definir" },
+        { id: 82, name: "Tetrarchia", img: "https://cf.geekdo-images.com/g5u68wgO0jrMZU9B444oYg__imagepage/img/FG8Dw3Jl2SW939rX4CJF6whMcaQ=/fit-in/900x600/filters:no_upscale():strip_icc()/pic8590128.jpg", mechanic: "Control de áreas", level: "Intermedio" },
+        { id: 83, name: "That's Pretty Clever!", img: "https://cf.geekdo-images.com/u1EZSUC5n8k4g4OFPkn3ow__imagepage/img/SpIZv_72R79YtWiVWMYGPMineb8=/fit-in/900x600/filters:no_upscale():strip_icc()/pic8014078.jpg", mechanic: "Roll and write", level: "Fácil" },
+        { id: 84, name: "The Castles of Burgundy", img: "https://cf.geekdo-images.com/EXvERyhT9ta6LrPR0Un7wA__imagepage/img/dDFhKY5OWKbjRnJzVyUxAWogVhw=/fit-in/900x600/filters:no_upscale():strip_icc()/pic8573872.jpg", mechanic: "Colocación losetas", level: "Intermedio" },
+        { id: 85, name: "The Lord of the Rings: Duel for Middle-earth", img: "https://cf.geekdo-images.com/EybxJlUc9rz7F7HVFLqsdw__imagepage/img/MwWN78LRcNAmP9wFrEsbuufPrRE=/fit-in/900x600/filters:no_upscale():strip_icc()/pic8378939.jpg", mechanic: "Deck-building", level: "Intermedio" },
+        { id: 86, name: "The Pillars of the Earth: Builders Duel", img: "https://cf.geekdo-images.com/hZAEtZvZgOmHOtpVZ-bW-w__imagepage/img/2Dd4x8G1iooulpLeRINIQ9ha_pE=/fit-in/900x600/filters:no_upscale():strip_icc()/pic612391.jpg", mechanic: "Colocación de trabajadores", level: "Intermedio" },
+        { id: 87, name: "The Quest for El Dorado", img: "https://cf.geekdo-images.com/b5VyYjNfAxJ4Z-Dx2UWlqg__imagepage/img/oGGZLnPoBVdO4ZlNquRvuzaQmrU=/fit-in/900x600/filters:no_upscale():strip_icc()/pic7945692.jpg", mechanic: "Colocación de trabajadores", level: "Intermedio" },
+        { id: 88, name: "The Red Cathedral", img: "https://cf.geekdo-images.com/-PuiCnbxlBzMSjnUegp9AQ__imagepage/img/EwaoRexKIfIc7UtByZzGOA0nDUQ=/fit-in/900x600/filters:no_upscale():strip_icc()/pic5556025.jpg", mechanic: "Colocación de dados", level: "Intermedio" },
+        { id: 89, name: "The Voyages of Marco Polo", img: "https://cf.geekdo-images.com/n1G7_aWToLAAB7Mqt8iwyA__imagepage/img/Br9Czi58HojFg6EK5AIgsZh4lW0=/fit-in/900x600/filters:no_upscale():strip_icc()/pic2461346.png", mechanic: "Colocación de dados", level: "Complejo" },
+        { id: 90, name: "The White Castle", img: "https://cf.geekdo-images.com/qXT1U-nFh9PE8ujfdmI7dA__imagepage/img/zfTFhCz8g6OeJi8V1HkDpaDbSzw=/fit-in/900x600/filters:no_upscale():strip_icc()/pic7754663.jpg", mechanic: "Colocación de dados", level: "Complejo" },
+        { id: 91, name: "Three Sisters", img: "https://cf.geekdo-images.com/Z1ihG_FHEKuf1Et53f2Dzg__imagepage/img/pQRnVBp7FYWmR0l1k9k5NECmOiQ=/fit-in/900x600/filters:no_upscale():strip_icc()/pic6349029.png", mechanic: "Roll and write", level: "Intermedio" },
+        { id: 92, name: "Through the Ages: A Story of Civilization", img: "https://cf.geekdo-images.com/3piN3YX4WmBRuIvbEG2Ygg__imagepage/img/gzArsOY1hN6rbzmF8LA8zMb0RRg=/fit-in/900x600/filters:no_upscale():strip_icc()/pic236169.jpg", mechanic: "Deck-building", level: "Complejo" },
+        { id: 93, name: "Tiletum", img: "https://cf.geekdo-images.com/DvvSoTrB3-UMEgz2rBraHg__imagepage/img/QMTSFhYXPGshUt1z0dhaoDps_js=/fit-in/900x600/filters:no_upscale():strip_icc()/pic7533289.jpg", mechanic: "Colocación de dados", level: "Intermedio" },
+        { id: 94, name: "Trajan", img: "https://cf.geekdo-images.com/djdeCr__iNV5rMnGnxNiaQ__imagepage/img/nZvNmOV5l_QHHDzTVQm3aKV05gE=/fit-in/900x600/filters:no_upscale():strip_icc()/pic4336095.png", mechanic: "Colocación de trabajadores", level: "Complejo" },
+        { id: 95, name: "Tribus: En Los Albores de la Humanidad", img: "https://cf.geekdo-images.com/Q2UtWJQdSmO6UDleSBiayA__imagepage/img/qdMbfkonvJ0rgMxJCPSuj0Ek0y8=/fit-in/900x600/filters:no_upscale():strip_icc()/pic4597145.jpg", mechanic: "Colocación losetas", level: "Intermedio" },
+        { id: 96, name: "Tuareg", img: "https://cf.geekdo-images.com/wHg4fOf48cs1kw1PDOk1tQ__imagepage/img/VoOR_p9e8JT5DpWplCV1YOy9MDI=/fit-in/900x600/filters:no_upscale():strip_icc()/pic3958793.jpg", mechanic: "Deck-building", level: "Intermedio" },
+        { id: 97, name: "Tzolk'in: The Mayan Calendar", img: "https://cf.geekdo-images.com/kXf7mDyDYuHg6oe8yTUIEA__imagepage/img/YGFu0t1P9YhP0krC-_TRLGUKopg=/fit-in/900x600/filters:no_upscale():strip_icc()/pic4604439.jpg", mechanic: "Colocación de trabajadores", level: "Complejo" },
+        { id: 98, name: "Venturesome", img: "https://cf.geekdo-images.com/vuSDpB2nw4HnIj-dI8c3Lw__imagepage/img/QabFpuv3Dco9NeUIIZXyVKwFoWA=/fit-in/900x600/filters:no_upscale():strip_icc()/pic8302929.jpg", mechanic: "Deck-building", level: "Intermedio" },
+        { id: 99, name: "Virus!", img: "https://cf.geekdo-images.com/7Xx4ipXV4lf0Q9mWwitf2w__imagepage/img/gPZbbE4iSkgppPSRtY-F4bAYXS8=/fit-in/900x600/filters:no_upscale():strip_icc()/pic6008974.jpg", mechanic: "Deck-building", level: "Fácil" },
+        { id: 100, name: "Winter", img: "https://cf.geekdo-images.com/R2BT6Kmf04qhWLkix1JZWQ__imagepage/img/51ax7efax5cDEXVVcvlpjvNAQ7c=/fit-in/900x600/filters:no_upscale():strip_icc()/pic6886406.jpg", mechanic: "Deck-building", level: "Intermedio" },
+        { id: 101, name: "Woodcraft", img: "https://cf.geekdo-images.com/S1_USNVBwzwidSpxAoKhuw__imagepage/img/jDnSx3dbgw43N_Kkx5y80cBRkQM=/fit-in/900x600/filters:no_upscale():strip_icc()/pic6940296.jpg", mechanic: "Colocación de dados", level: "Complejo" },
+        { id: 102, name: "¡César!: ¡Conquista Roma en 20 minutos!", img: "https://cf.geekdo-images.com/Mw_WmNeSTRgEgiQG87YPgQ__imagepage/img/L5JRrs-plvyqe8RBMNQTJImRxww=/fit-in/900x600/filters:no_upscale():strip_icc()/pic6228356.png", mechanic: "Control de áreas", level: "Intermedio" }
+    ];
+    // ======================================================================
+
+    let dbGames = [];
+    let players = {};
+    let currentPlayerKey = 'p1';
+    let currentMatch = [];
+    let editingGameId = null;
+    let selectedTopCount = 3;
+
+    function initDatabase() {
+        const storedGames = localStorage.getItem('torneoJuegosDB');
+        if (storedGames) {
+            dbGames = JSON.parse(storedGames);
+        } else {
+            dbGames = [...defaultGames];
+            saveDatabase();
+        }
+    }
+
+    function saveDatabase() {
+        localStorage.setItem('torneoJuegosDB', JSON.stringify(dbGames));
+    }
+
+    function resetDatabase() {
+        if(confirm("¿Estás seguro? Esto forzará a la página a borrar su memoria temporal y cargar la base de datos que está escrita en el código.")){
+            localStorage.removeItem('torneoJuegosDB');
+            initDatabase();
+            renderGameList();
+            alert("¡Memoria borrada y actualizada correctamente!");
+        }
+    }
+
+    function exportDatabase() {
+        let output = "const defaultGames = [\n";
+        dbGames.forEach((game, index) => {
+            output += `    { id: ${game.id}, name: "${game.name}", img: "${game.img}", mechanic: "${game.mechanic || 'Otra'}", level: "${game.level || 'Sin definir'}" }`;
+            if (index < dbGames.length - 1) output += ",\n";
+            else output += "\n";
+        });
+        output += "];";
+
+        const blob = new Blob(["\uFEFF", output], { type: 'text/plain;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'codigo_base_de_datos.txt';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    }
+
+    window.onload = function() {
+        initTheme(); 
+        initDatabase();
+        renderGameList();
+        togglePlayerMode();
+    };
+
+    function renderGameList() {
+        const list = document.getElementById('game-list');
+        list.innerHTML = '';
+        let sortedGames = [...dbGames].sort((a, b) => a.name.localeCompare(b.name));
+
+        sortedGames.forEach(game => {
+            let mech = game.mechanic || 'Otra';
+            let lvl = game.level || 'Sin definir';
+            list.innerHTML += `
+                <div class="game-list-item">
+                    <div class="game-info" style="align-items: flex-start;">
+                        <div style="display:flex; align-items:center;">
+                            <img src="${game.img}" alt="${game.name}">
+                            <div style="display:flex; flex-direction:column; align-items:flex-start;">
+                                <span style="font-size: 15px;">${game.name}</span>
+                                <span style="font-size: 11px; opacity: 0.7; margin-top: 4px; font-weight: normal;">🕹️ ${mech} | 📊 ${lvl}</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="action-buttons">
+                        <button class="edit-btn" onclick="openEditModal(${game.id})">✏️ Editar</button>
+                        <button class="delete-btn" onclick="deleteGame(${game.id})">🗑️</button>
+                    </div>
+                </div>
+            `;
+        });
+        document.getElementById('game-count-msg').innerText = `Total: ${dbGames.length}`;
+    }
+
+    function openEditModal(id) {
+        editingGameId = id;
+        let game = dbGames.find(g => g.id === id);
+        
+        document.getElementById('edit-name').value = game.name;
+        document.getElementById('edit-img').value = game.img;
+        document.getElementById('edit-mechanic').value = game.mechanic || 'Otra';
+        document.getElementById('edit-level').value = game.level || 'Sin definir';
+        
+        document.getElementById('edit-modal').classList.remove('hidden');
+    }
+
+    function closeEditModal() {
+        document.getElementById('edit-modal').classList.add('hidden');
+        editingGameId = null;
+    }
+
+    function saveEditedGame() {
+        if(editingGameId !== null) {
+            let game = dbGames.find(g => g.id === editingGameId);
+            game.name = document.getElementById('edit-name').value || game.name;
+            game.img = document.getElementById('edit-img').value || game.img;
+            game.mechanic = document.getElementById('edit-mechanic').value;
+            game.level = document.getElementById('edit-level').value;
+            
+            saveDatabase();
+            renderGameList();
+            closeEditModal();
+        }
+    }
+
+    function deleteGame(id) {
+        let game = dbGames.find(g => g.id === id);
+        if (confirm(`¿Eliminar "${game.name}"?`)) {
+            dbGames = dbGames.filter(g => g.id !== id);
+            saveDatabase(); 
+            renderGameList(); 
+        }
+    }
+
+    function addGame() {
+        const name = document.getElementById('new-game-name').value;
+        const img = document.getElementById('new-game-img').value || `https://placehold.co/400x400?text=${name}`;
+        const mechanic = document.getElementById('new-game-mechanic').value;
+        const level = document.getElementById('new-game-level').value;
+
+        if (name) {
+            dbGames.push({ id: Date.now(), name, img, mechanic, level });
+            saveDatabase(); 
+            document.getElementById('new-game-name').value = '';
+            document.getElementById('new-game-img').value = '';
+            document.getElementById('new-game-mechanic').value = 'Otra';
+            document.getElementById('new-game-level').value = 'Sin definir';
+            renderGameList();
+            alert(`${name} agregado con éxito.`);
+        }
+    }
+
+    function shuffle(array) {
+        return array.sort(() => Math.random() - 0.5);
+    }
+
+    function startTournament() {
+        const numPlayers = document.getElementById('num-players').value;
+        const p1Name = document.getElementById('p1-name').value || 'Marielos';
+        const p2Name = document.getElementById('p2-name').value || 'José Luis';
+        
+        selectedTopCount = parseInt(document.getElementById('top-count').value);
+        
+        const filterMech = document.getElementById('filter-mechanic').value;
+        const filterLvl = document.getElementById('filter-level').value;
+
+        let filteredGames = dbGames.filter(g => {
+            let gameMech = g.mechanic || 'Otra';
+            let gameLvl = g.level || 'Sin definir';
+            
+            let matchMech = (filterMech === 'Todos' || gameMech === filterMech);
+            let matchLvl = (filterLvl === 'Todos' || gameLvl === filterLvl);
+            return matchMech && matchLvl;
+        });
+
+        if (filteredGames.length < selectedTopCount) {
+            return alert(`¡No hay suficientes juegos con esos filtros!\nEncontrados: ${filteredGames.length}. Necesitas al menos ${selectedTopCount} juegos para jugar un Top ${selectedTopCount}.`);
+        }
+
+        let sharedShuffle = shuffle([...filteredGames]);
+        let initialMatches = Math.ceil(sharedShuffle.length / 2);
+
+        players = {
+            p1: { key: 'P1', name: p1Name, color: '#e67e22', queue: JSON.parse(JSON.stringify(sharedShuffle)), nextStage: [], eliminated: [], stage: 1, totalMatches: initialMatches, currentMatchNum: 1 }
+        };
+
+        if (numPlayers === '2') {
+            players.p2 = { key: 'P2', name: p2Name, color: '#1a5276', queue: JSON.parse(JSON.stringify(sharedShuffle)), nextStage: [], eliminated: [], stage: 1, totalMatches: initialMatches, currentMatchNum: 1 };
+        }
+
+        document.getElementById('setup-screen').classList.add('hidden');
+        document.getElementById('match-screen').classList.remove('hidden');
+        currentPlayerKey = 'p1';
+        loadNextMatch();
+    }
+
+    function loadNextMatch() {
+        let p = players[currentPlayerKey];
+
+        if (p.queue.length === 0) {
+            if (p.nextStage.length === 1) return checkTournamentEnd();
+            p.queue = shuffle([...p.nextStage]);
+            p.nextStage = [];
+            p.stage++;
+            p.totalMatches = Math.ceil(p.queue.length / 2);
+            p.currentMatchNum = 1;
+        }
+
+        if (p.queue.length === 1) currentMatch = [p.queue.pop()];
+        else currentMatch = [p.queue.pop(), p.queue.pop()];
+        
+        renderMatch();
+    }
+
+    function renderMatch() {
+        let p = players[currentPlayerKey];
+        
+        document.getElementById('turn-indicator').innerHTML = `Turno de: <span style="color: ${p.color}; font-weight: bold;">${p.name}</span>`;
+        document.getElementById('stage-indicator').innerText = `Etapa: ${p.stage}`;
+        
+        let matchesLeft = p.totalMatches - p.currentMatchNum;
+        let counterText = currentMatch.length === 1 
+            ? `Pase Automático (Juego Impar) - ${p.currentMatchNum} de ${p.totalMatches}` 
+            : `Enfrentamiento ${p.currentMatchNum} de ${p.totalMatches} (Faltan: ${matchesLeft})`;
+        document.getElementById('match-counter').innerText = counterText;
+
+        const arena = document.getElementById('match-arena');
+        if (currentMatch.length === 1) {
+            arena.innerHTML = `
+                <div class="game-card single-card" onclick="selectGame(0)">
+                    <img src="${currentMatch[0].img}">
+                    <h3>${currentMatch[0].name}</h3>
+                    <button class="pass-btn">Marcar para pasar a la Etapa ${p.stage + 1}</button>
+                </div>
+            `;
+        } else {
+            arena.innerHTML = `
+                <div class="game-card" onclick="selectGame(0)"><img src="${currentMatch[0].img}"><h3>${currentMatch[0].name}</h3></div>
+                <div class="vs">VS</div>
+                <div class="game-card" onclick="selectGame(1)"><img src="${currentMatch[1].img}"><h3>${currentMatch[1].name}</h3></div>
+            `;
+        }
+    }
+
+    function selectGame(winnerIndex) {
+        let p = players[currentPlayerKey];
+        let selectedGame = currentMatch[winnerIndex];
+        selectedGame[`etapa${p.key}`] = p.stage;
+        p.nextStage.push(selectedGame);
+
+        if (currentMatch.length === 2) p.eliminated.push(currentMatch[winnerIndex === 0 ? 1 : 0]);
+        p.currentMatchNum++;
+        
+        if (Object.keys(players).length === 2) {
+            currentPlayerKey = currentPlayerKey === 'p1' ? 'p2' : 'p1';
+        }
+        
+        loadNextMatch();
+    }
+
+    function checkTournamentEnd() {
+        const p1Done = players.p1.queue.length === 0 && players.p1.nextStage.length === 1;
+        const p2Done = players.p2 ? (players.p2.queue.length === 0 && players.p2.nextStage.length === 1) : true;
+
+        if (p1Done && p2Done) {
+            showResults();
+        } else { 
+            if (Object.keys(players).length === 2) {
+                currentPlayerKey = players.p1.nextStage.length === 1 ? 'p2' : 'p1'; 
+            }
+            loadNextMatch(); 
+        }
+    }
+
+    function showResults() {
+        document.getElementById('match-screen').classList.add('hidden');
+        document.getElementById('results-screen').classList.remove('hidden');
+        
+        renderPodium('p1', 'p1-results');
+        
+        if (players.p2) {
+            renderPodium('p2', 'p2-results');
+        } else {
+            document.getElementById('p2-results').innerHTML = ''; 
+        }
+    }
+
+    function renderPodium(playerKey, containerId) {
+        let p = players[playerKey];
+        let winner = p.nextStage[0]; 
+        let eliminatedReversed = [...p.eliminated].reverse();
+        let second = eliminatedReversed[0]; 
+        let third = eliminatedReversed[1]; 
+
+        let html = `
+            <h2 style="color: ${p.color}; margin-top: 50px; font-size: 28px; border-bottom: 3px solid ${p.color}; display: inline-block; padding-bottom: 5px;">Resultados de ${p.name}</h2>
+            <div class="podium">
+                <div class="place-card first-place"><h3 style="color: #f39c12;">🥇 1er Lugar</h3><img src="${winner.img}"><p><strong>${winner.name}</strong></p></div>
+                ${second ? `<div class="place-card second-place"><h3 style="color: #7f8c8d;">🥈 2do Lugar</h3><img src="${second.img}"><p><strong>${second.name}</strong></p></div>` : ''}
+                ${third ? `<div class="place-card third-place"><h3 style="color: #d35400;">🥉 3er Lugar</h3><img src="${third.img}"><p><strong>${third.name}</strong></p></div>` : ''}
+            </div>
+        `;
+
+        if (selectedTopCount > 3) {
+            html += `<h3 style="margin-top: 40px; color: var(--primary); border-top: 1px dashed var(--border-color); padding-top: 20px;">Menciones Honoríficas</h3>`;
+            html += `<div class="extended-podium">`;
+            for (let i = 3; i < selectedTopCount; i++) {
+                let game = eliminatedReversed[i - 1];
+                if (game) {
+                    html += `
+                        <div class="extended-card">
+                            <span class="rank-badge">${i + 1}</span>
+                            <img src="${game.img}">
+                            <p>${game.name}</p>
+                        </div>
+                    `;
+                }
+            }
+            html += `</div>`;
+        }
+
+        document.getElementById(containerId).innerHTML = html;
+    }
+</script>
+</body>
+</html>
